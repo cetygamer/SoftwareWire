@@ -35,6 +35,11 @@ static const uint8_t IIC_WRITE     = 0x00;  //Byte to OR with address for write 
 
 #pragma GCC optimize ("O3")
 
+SoftIIC::~SoftIIC()
+{
+  end();
+}
+
 uint8_t SoftIIC::StateIdle()
 {
   return ((IIC_STATE_PREVIOUS == _busBitMask) & (IIC_STATE == _busBitMask));

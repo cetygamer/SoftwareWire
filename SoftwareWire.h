@@ -108,6 +108,7 @@ public:
     else
       Serial.println("!!! Ports are NOT the same !!!");
   }
+  ~SoftIIC();
 
 protected:
   uint8_t _busBitMask;
@@ -144,5 +145,45 @@ public:
     uint8_t (*fp_generate_byte)(uint8_t *value)
   );
 };
+
+void i2c_isr();
+
+typedef struct i2c_s {
+  // Signal level
+  int      state;   // Status of I2C state machine (see I2CSTATE_XXX)
+  int      pulse;   // The number of SCL pulses seen so far
+  uint32_t qus;     // Transaction start, later length, in us
+  int      sdacap;  // State of SDA captured on rising SCL
+  int      data;    // Bits of ADDR or DATA
+  int      bitcnt;  // Bit count 0..7 of bits in data
+  int      logbits; // Should individual bits be logged
+  // Segment level
+  int      addr;    // Last slave address on the line
+  int      bytecnt; // Byte count in segment
+} i2c_t;
+
+class I2CTool : public SoftwareWire
+{
+public:
+  I2CTool(uint8_t sdaPin, uint8_t sclPin, boolean pullups = true, boolean detectClockStretch = true);
+  ~I2CTool();
+
+  friend void i2c_isr();
+
+protected:
+  // Signal level
+  int      state;   // Status of I2C state machine (see I2CSTATE_XXX)
+  int      pulse;   // The number of SCL pulses seen so far
+  uint32_t qus;     // Transaction start, later length, in us
+  int      sdacap;  // State of SDA captured on rising SCL
+  int      data;    // Bits of ADDR or DATA
+  int      bitcnt;  // Bit count 0..7 of bits in data
+  int      logbits; // Should individual bits be logged
+  // Segment level
+  int      addr;    // Last slave address on the line
+  int      bytecnt; // Byte count in segment
+};
+
+extern I2CTool i2c;
 
 #endif // SoftwareWire_h
