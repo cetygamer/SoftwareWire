@@ -113,14 +113,13 @@ protected:
   uint8_t _busBitMask;
 
   // IIC slave mode timing related functions/variables
-  FORCE_INLINE  uint8_t  spin_until_start();
-  FORCE_INLINE  uint8_t  spin_until_clock_rises();
-  FORCE_INLINE  uint8_t  spin_until_clock_falls();
+  FORCE_INLINE uint8_t spin_until_start();
+  FORCE_INLINE uint8_t spin_until_clock_rises();
+  FORCE_INLINE uint8_t spin_until_clock_falls();
 
   // IIC slave mode lower level functions
-  FORCE_INLINE  uint8_t  get_byte(uint8_t* value);
-  FORCE_INLINE  uint8_t  get_byte(uint8_t* value, uint8_t (*my_ack_function)(uint8_t rxbyte));
-  FORCE_INLINE  uint8_t  set_byte(uint8_t value);
+  FORCE_INLINE uint8_t get_byte(uint8_t *value, uint8_t (*my_ack_function)(uint8_t rxbyte));
+  FORCE_INLINE uint8_t set_byte(uint8_t (*my_get_byte_function)(uint8_t *txbyte));
 
   // IIC state functions
   uint8_t IIC_STATE;
@@ -138,7 +137,12 @@ protected:
   FORCE_INLINE void bus_read_same_port();
   FORCE_INLINE void bus_read();
 
-  uint16_t SlaveHandleTransaction();
+public:
+  uint8_t SlaveHandleTransaction(
+    uint8_t (*fp_respond_to_address)(uint8_t chip_address),
+    uint8_t (*fp_respond_to_data)(uint8_t value),
+    uint8_t (*fp_generate_byte)(uint8_t *value)
+  );
 };
 
 #endif // SoftwareWire_h
