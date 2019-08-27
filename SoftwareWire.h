@@ -103,9 +103,7 @@ public:
     uint8_t sdaPort = digitalPinToPort(_sdaPin);
     uint8_t sclPort = digitalPinToPort(_sclPin);
 
-    if(sdaPort == sclPort)
-      Serial.println("!!! Ports are the same !!!");
-    else
+    if(sdaPort != sclPort)
       Serial.println("!!! Ports are NOT the same !!!");
   }
   ~SoftIIC();
@@ -138,12 +136,20 @@ protected:
   FORCE_INLINE void bus_read_same_port();
   FORCE_INLINE void bus_read();
 
+  uint8_t i2c_read(boolean ack, unsigned long stretchOnDataRecv);
+
 public:
   uint8_t SlaveHandleTransaction(
     uint8_t (*fp_respond_to_address)(uint8_t chip_address),
     uint8_t (*fp_respond_to_data)(uint8_t value),
     uint8_t (*fp_generate_byte)(uint8_t *value)
   );
+
+  uint8_t requestFrom(uint8_t address, uint8_t size, unsigned long stretchOnAddrAck,
+    unsigned long stretchOnDataRecv, boolean sendStop = true);
+
+  void set_sda_hi();
+  void set_sda_lo();
 };
 
 void i2c_isr();
@@ -185,5 +191,23 @@ protected:
 };
 
 extern I2CTool i2c;
+
+// Extended function for microsecond sleep
+static FORCE_INLINE void udelay(unsigned long us)
+{
+  if(us > 20000)
+  {
+    unsigned long ms_part = us / 1000;
+    unsigned long us_part = us % 1000;
+    if(ms_part)
+      delay(ms_part);
+    if(us_part)
+      delayMicroseconds(us_part);
+  }
+  else
+  {
+    delayMicroseconds(us);
+  }
+}
 
 #endif // SoftwareWire_h

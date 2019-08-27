@@ -267,8 +267,12 @@ uint8_t SoftIIC::SlaveHandleTransaction(
   uint8_t chipddr_has_been_set = 0;
   uint8_t chip_address = 0x00;
   uint8_t rwbit = 0;
+  uint8_t n = 0;
   uint8_t value = 0x00;
   uint8_t (*my_ack_function)(uint8_t) = fp_respond_to_address;
+
+  rxBufPut = 0;
+  rxBufGet = 0;
 
 beginning:
   SoftIIC::bus_read();
@@ -299,6 +303,7 @@ getting_a_byte:
       }
       else
       {
+        rxBuf[rxBufPut++] = value;
         goto getting_a_byte;
       }
       break;
@@ -350,4 +355,101 @@ done_with_iic_transaction:
   i2c_sda_hi();
 
   return tretval;
+}
+
+uint8_t SoftIIC::i2c_read(boolean ack, unsigned long stretchOnDataRecv)
+{
+  uint8_t res = 0;
+
+  for(uint8_t i=0; i<8; i++)
+  {
+    res <<= 1;
+    res |= i2c_readbit();
+  }
+
+  // Clock stretching: Master analyzes RX data
+  if(stretchOnDataRecv)
+  {
+    udelay(stretchOnDataRecv);
+  }
+
+  if(ack)
+  {
+    i2c_writebit(0);
+  }
+  else
+  {
+    i2c_writebit(1);
+  }
+
+  if(_i2cdelay != 0)
+    delayMicroseconds(_i2cdelay);
+
+  return(res);
+}
+
+uint8_t SoftIIC::requestFrom(uint8_t address, uint8_t size, unsigned long stretchOnAddrAck,
+  unsigned long stretchOnDataRecv, boolean sendStop)
+{
+  uint8_t n=0;             // number of valid received bytes. Start with 0 bytes.
+
+  // The transmission status is set, although it is not returned.
+  // Start with the status : no error
+  _transmission = SOFTWAREWIRE_NO_ERROR;
+
+
+  // Clear the RX buffer
+  rxBufPut = 0;
+  rxBufGet = 0;
+
+  boolean bus_okay = i2c_start();
+
+  if(bus_okay)
+  {
+    uint8_t rc = i2c_write((address << 1) | 1);          // The r/w bit is '1' to read
+
+    if( rc == 0)                                         // a sda zero from Slave for the 9th bit is ack
+    {
+      _transmission = SOFTWAREWIRE_NO_ERROR;
+
+      // Clock stretching: Master prepares to receive data
+      if(stretchOnAddrAck)
+        udelay(stretchOnAddrAck);
+
+      for(; n<size; n++)
+      {
+        if( n < (size - 1))
+          rxBuf[n] = i2c_read(true, stretchOnDataRecv);        // read with ack
+        else
+          rxBuf[n] = i2c_read(false, stretchOnDataRecv);       // last byte, read with nack
+      }
+      rxBufPut = n;
+    }
+    else
+    {
+      _transmission = SOFTWAREWIRE_ADDRESS_NACK;
+    }
+  }
+  else
+  {
+    // There was a bus error.
+    _transmission = SOFTWAREWIRE_OTHER;
+  }
+
+  if(sendStop || _transmission != SOFTWAREWIRE_NO_ERROR)
+    i2c_stop();
+  else
+    i2c_repstart();
+
+  return( n);
+}
+
+void SoftIIC::set_sda_hi()
+{
+  i2c_sda_hi();
+}
+
+void SoftIIC::set_sda_lo()
+{
+  i2c_sda_lo();
 }
