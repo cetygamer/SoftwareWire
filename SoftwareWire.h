@@ -195,7 +195,7 @@ extern I2CTool i2c;
 // Extended function for microsecond sleep
 static FORCE_INLINE void udelay(unsigned long us)
 {
-  if(us > 20000)
+  if(us > 1000)
   {
     unsigned long ms_part = us / 1000;
     unsigned long us_part = us % 1000;
