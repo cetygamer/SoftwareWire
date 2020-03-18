@@ -85,9 +85,7 @@ public:
   uint8_t i2c_read(boolean ack);
 };
 
-#include "USBAPI.h"
-
-extern Serial_ Serial;
+#include "Arduino.h"
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
